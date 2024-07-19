@@ -30,17 +30,15 @@ class Command:
         self.aliases: list[str] | None = aliases
         self._parameters: list[inspect.Parameter] = self._get_valid_arguments(func)
 
-    def __str__(self) -> str:
-        u = ' '.join(self._format_param(param) for param in self._parameters)
-        name = ' | '.join(self.invokable_names)
-        description = self.description or ''
-        return f'{name}\n{'-' * len(name)}\n{description}\n{u}'
-
     @property
     def invokable_names(self) -> tuple[str, ...]:
         if self.aliases:
             return self.name, *self.aliases
         return self.name,
+
+    @property
+    def parameters(self) -> list[str]:
+        return [self._format_param(param) for param in self._parameters]
 
     def _validate_func(self, func: CommandFunc) -> CommandFunc:
         if isinstance(func, classmethod):
@@ -83,7 +81,6 @@ class Command:
         return sum(
             1 for param in self._parameters
             if param.annotation not in OPTIONALS
-            and param.kind is not param.VAR_POSITIONAL
         )
 
     def _check_param(self, param: inspect.Parameter) -> bool:
@@ -95,15 +92,15 @@ class Command:
 
     def _print_usage(self, output: Output) -> None:
         u = ' '.join(self._format_param(param) for param in self._parameters)
-        output.error(f'Usage: {self.name} {u}')
+        output.error(f'Usage: {" | ".join(self.invokable_names)} {u}')
 
     def _print_expected(self, name: str, expected: type, given: str, output: Output) -> None:
-        output.error(f'Expected {name} argument to be {expected.__name__}, got {given}')
+        output.error(f'Expected "{name}" argument to be {expected.__name__}, got "{given}"')
 
     def _format_param(self, param: inspect.Parameter) -> str:
         return f'<{param.name}: {param.annotation.__name__ if param.annotation not in OPTIONALS else param.annotation}>'
 
-    def invoke(self, params: list[str], *, output: Output) -> None:
+    def invoke(self, cls: Any, params: list[str], *, output: Output) -> None:
         ready = []
         for i, given in enumerate(params):
             if not self._parameters:
@@ -132,7 +129,7 @@ class Command:
         if len(ready) < self._get_required_count():
             return self._print_usage(output)
         try:
-            self.func(*ready)
+            self.func(cls, *ready)
         except Exception as e:
             output.error(str(e))
 
