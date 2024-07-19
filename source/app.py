@@ -72,25 +72,44 @@ class App(metaclass=SupportsCommandsType):
         self.output.info('Here are list of all stored books:\n')
         out = '====================\n'
         for book in self.bookshelf.books.values():
-            if book.status is BookStatus.in_stock:
-                status = 'In stock'
-            elif book.status is BookStatus.handed_over:
-                status = 'Handed over'
-            else:
-                status = 'Unknown status'
-
             out += f'| Book "{book.title}"\n'
             out += f'| Author: {book.author}\n'
             out += f'| {book.year} year of publishing\n'
             out += f'| ID: {book.id}\n'
-            out += f'| Status: {status}\n'
+            out += f'| Status: {book.str_status()}\n'
             out += '====================\n'
         self.output.info(out)
+
+    @command()
+    def status(self, book_id: str, status: str) -> None:
+        """Command for changing the book status. Status parameter must be one of 'stock' and 'out'."""
+        if book_id not in self.bookshelf.books:
+            self.output.error(f'Book with ID "{book_id}" doesn\'t exist!')
+            return
+        if status not in {'stock', 'out'}:
+            self.output.error('Status parameter must be one of "stock" and "out"!')
+            return
+
+        book: Book = self.bookshelf.get_book(book_id)
+        assert book is not None
+        book.status = BookStatus.in_stock if status == 'stock' else BookStatus.handed_over
+        self.bookshelf.add_book(book)
+        self.output.info(f'Status of the book "{book.title}" (ID:{book_id}) has been set to "{book.str_status()}"')
+
+    @command(aliases=['del', 'd'])
+    def delete(self, book_id: str) -> None:
+        """Command to delete a book by it's ID."""
+        if book_id not in self.bookshelf.books:
+            self.output.error(f'Book with ID "{book_id}" doesn\'t exist!')
+            return
+
+        removed = self.bookshelf.remove_book(book_id)
+        self.output.info(f'Book with ID "{book_id}" and title "{removed.title}" deleted successfully!')
 
     @staticmethod
     def preload() -> None:
         if sys.platform == 'win32':
-            os.system('title Library Control')
+            os.system('title Library')
 
     @staticmethod
     def clear_screen() -> None:

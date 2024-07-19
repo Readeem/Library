@@ -30,6 +30,14 @@ class Book:
         self.status: BookStatus = status or BookStatus.in_stock
         self.id: str = id or os.urandom(4).hex()
 
+    def str_status(self) -> str:
+        if self.status is BookStatus.in_stock:
+            return 'In stock'
+        elif self.status is BookStatus.handed_over:
+            return 'Handed over'
+        else:
+            return 'Unknown status'
+
     def to_dict(self) -> dict[str, Any]:
         return {
             'title': self.title,

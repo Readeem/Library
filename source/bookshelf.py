@@ -48,6 +48,10 @@ class Bookshelf:
         self.books[book.id] = book
         self.save_books()
 
-    def remove_book(self, book_id: str) -> None:
-        self.books.pop(book_id)
+    def get_book(self, book_id: str) -> Book | None:
+        return self.books.get(book_id)
+
+    def remove_book(self, book_id: str) -> Book:
+        book = self.books.pop(book_id)
         self.save_books()
+        return book
