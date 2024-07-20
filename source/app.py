@@ -9,6 +9,7 @@ from .output import Output
 
 
 class App(metaclass=SupportsCommandsType):
+    """Main class of the Library app with support of commands."""
     COMMANDS: ClassVar[list[Command]]
 
     def __init__(self) -> None:
@@ -91,7 +92,7 @@ class App(metaclass=SupportsCommandsType):
         self.bookshelf.add_book(book)
         self.output.info(f'Status of the book "{book.title}" (ID:{book_id}) has been set to "{book.str_status()}"')
 
-    @command()
+    @command(aliases=['find'])
     def search(self, *query: str) -> None:
         """Command to search for books.
 
@@ -168,6 +169,21 @@ class App(metaclass=SupportsCommandsType):
         os.system(clear_cmd)
 
     def input_flow(self, title: str, predicate: Callable[[str], bool] | None = None) -> str | None:
+        """Creates an input flow to get a correct value.
+
+        Parameters
+        ----------
+        title: str
+            The title being displayed on top of input field.
+        predicate: Callable[[str], bool] | None
+            Optional callable that must accept the value entered from user
+            and return True if the value is valid, False otherwise.
+
+        Returns
+        -------
+        str | None
+            String value entered by the user or ``None`` if the operation was cancelled by user.
+        """
         title += '\nTo cancel the process enter "cancel" or "c".\n'
         while True:
             self.clear_screen()
@@ -184,6 +200,7 @@ class App(metaclass=SupportsCommandsType):
         return result
 
     def show_books(self, books: Iterable[Book]) -> None:
+        """Prints to output all the books from given iterable."""
         out = '====================\n'
         for book in books:
             out += f'| Book "{book.title}"\n'
@@ -195,6 +212,7 @@ class App(metaclass=SupportsCommandsType):
         self.output.info(out)
 
     def invoke_command(self, name: str, params: list[str]) -> None:
+        """Tries to invoke the command with given name and parameters entered by the user."""
         self.clear_screen()
         for cmd in self.COMMANDS:
             if name in cmd.invokable_names:
@@ -203,6 +221,7 @@ class App(metaclass=SupportsCommandsType):
         self.output.error(f'Unknown command: "{name}"')
 
     def tick(self) -> None:
+        """Tick being called with each user input."""
         self.clear_screen()
         self.output.info(
             'This is Library app.\n'
@@ -218,6 +237,7 @@ class App(metaclass=SupportsCommandsType):
         input('Press Enter to continue...\n')
 
     def run(self) -> None:
+        """Entrypoint method for the app. Blocking."""
         self.preload()
         try:
             while True:

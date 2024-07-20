@@ -16,6 +16,13 @@ CommandFunc = Callable
 
 
 class Command:
+    """Represents a command for this app.
+
+    This can be constructed using `command` decorator.
+    Callback function of the command must have all parameters (except self)
+    typehinted with acceptable type (one of str, int, float, bool).
+    Only positional parameters are allowed.
+    """
     def __init__(
             self,
             func: CommandFunc,
@@ -32,12 +39,14 @@ class Command:
 
     @property
     def invokable_names(self) -> tuple[str, ...]:
+        """Returns a tuple of names with which this command can be invoked."""
         if self.aliases:
             return self.name, *self.aliases
         return self.name,
 
     @property
     def parameters(self) -> list[str]:
+        """Returns list of formatted parameters that this command accepts."""
         return [self._format_param(param) for param in self._parameters]
 
     def _validate_func(self, func: CommandFunc) -> CommandFunc:
@@ -101,6 +110,17 @@ class Command:
         return f'<{param.name}: {param.annotation.__name__ if param.annotation not in OPTIONALS else param.annotation}>'
 
     def invoke(self, cls: Any, params: list[str], *, output: Output) -> None:
+        """Invoke this command's callback.
+
+        Parameters
+        ----------
+        cls: Any
+            The class instance that holds the command (self in command parameters)
+        params: list[str]
+            Raw parameters for this command entered by user.
+        output: Output
+            The output for this command.
+        """
         ready = []
         for i, given in enumerate(params):
             if not self._parameters:
@@ -135,6 +155,12 @@ class Command:
 
 
 class SupportsCommandsType(type):
+    """Metaclass for commands support.
+
+    This metaclass must be used on a class where you want support for the commands.
+    This will add a class variable `COMMANDS` which will hold all defined commands
+    in this class as a list of `Command`.
+    """
     def __new__(
             metacls,
             name: str,
@@ -155,6 +181,19 @@ def command(
         description: str | None = None,
         aliases: list[str] | None = None
 ) -> Callable[[Callable], Command]:
+    """Decorator that converts function to the command.
+
+    Parameters
+    ----------
+    name: str | None
+        Optional command name.
+        If not provided this will be the function name.
+    description: str | None
+        Optional command description.
+        If not provided this will be the function docstring.
+    aliases: list[str] | None
+        Optional list of aliases for this command.
+    """
     def decorator(func: Callable) -> Command:
         return Command(
             func,
@@ -162,5 +201,4 @@ def command(
             description=description or func.__doc__,
             aliases=aliases
         )
-
     return decorator

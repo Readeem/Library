@@ -55,6 +55,14 @@ class Style(metaclass=_AnsiType):
 
 
 class Output:
+    """Represents the output handler for this app.
+
+    Parameters
+    ----------
+    use_color: bool
+        Whether to use colored output.
+        Defaults to ``True``.
+    """
     def __init__(
             self, *,
             use_color: bool = True
@@ -62,16 +70,19 @@ class Output:
         self.use_color: bool = use_color
 
     def info(self, text: str) -> None:
+        """Shows text as information."""
         if self.use_color:
             text = f'{Style.RESET_ALL}{Fore.GREEN}{text}{Style.RESET_ALL}'
         print(text)
 
     def warning(self, text: str) -> None:
+        """Shows text as warning."""
         if self.use_color:
             text = f'{Style.RESET_ALL}{Fore.YELLOW}{Style.BRIGHT}{text}{Style.RESET_ALL}'
         print(text)
 
     def error(self, text: str) -> None:
+        """Shows text as error."""
         if self.use_color:
             text = f'{Style.RESET_ALL}{Fore.RED}{Style.BRIGHT}{text}{Style.RESET_ALL}'
         print(text)
