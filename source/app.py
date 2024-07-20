@@ -194,7 +194,7 @@ class App(metaclass=SupportsCommandsType):
             if result in {'cancel', 'c'}:
                 return None
             if predicate and not predicate(result):
-                input('Press Enter to continue...\n')
+                self.wait_to_continue()
                 continue
             break
         return result
@@ -220,6 +220,10 @@ class App(metaclass=SupportsCommandsType):
                 return
         self.output.error(f'Unknown command: "{name}"')
 
+    def wait_to_continue(self) -> None:
+        """Method to wait until user presses Enter key. Blocking."""
+        input('Press Enter to continue...\n')
+
     def tick(self) -> None:
         """Tick being called with each user input."""
         self.clear_screen()
@@ -234,11 +238,17 @@ class App(metaclass=SupportsCommandsType):
             return
         name: str = params[0]
         self.invoke_command(name, params[1:])
-        input('Press Enter to continue...\n')
+        self.wait_to_continue()
 
     def run(self) -> None:
         """Entrypoint method for the app. Blocking."""
         self.preload()
+        try:
+            self.bookshelf.load_books()
+        except TypeError as e:
+            self.output.error(f'Failed to load stored books: {e}\n')
+            self.output.warning('Book data is not loaded and will be overridden when adding a new book.')
+            self.wait_to_continue()
         try:
             while True:
                 self.tick()

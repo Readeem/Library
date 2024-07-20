@@ -12,16 +12,15 @@ class Bookshelf:
 
     Attributes
     ----------
-    DATA_FILE: Final[str]
+    file_path: Final[str]
         Name of the file where the books will be saved.
     books: dict[str, Book]
         Mapping of Book.id to Book.
     """
-    DATA_FILE: Final[str] = 'books.json'
 
-    def __init__(self) -> None:
+    def __init__(self, file_path: str = 'books.json') -> None:
+        self.file_path: str = file_path
         self.books: dict[str, Book] = {}
-        self.load_books()
 
     def _json_default(self, obj: Any) -> Any:
         if isinstance(obj, Book):
@@ -31,18 +30,23 @@ class Bookshelf:
     def load_books(self) -> None:
         """Method to load books from the data file.
 
-        If the data file is corrupted/invalid this method will remove it.
         If some book data from the file invalid it will be ignored during loading.
+
+        Raises
+        ------
+        TypeError
+            If the data in file were corrupted or invalid.
         """
-        if not os.path.exists(self.DATA_FILE):
+        if not os.path.exists(self.file_path):
             return
 
-        with open(self.DATA_FILE, 'r', encoding='utf-8') as f:
-            data: dict[str, dict[str, Any]] = json.load(f)
-
-        if not isinstance(data, dict):
-            os.remove(self.DATA_FILE)
-            raise TypeError(f'Invalid data in file "{self.DATA_FILE}"')
+        with open(self.file_path, 'r', encoding='utf-8') as f:
+            try:
+                data: dict[str, dict[str, Any]] = json.load(f)
+            except json.JSONDecodeError as e:
+                raise TypeError(f'Could not decode data in file "{self.file_path}": {e}')
+            if not isinstance(data, dict):
+                raise TypeError(f'Invalid data in file "{self.file_path}": expected object got array')
 
         for obj in data.values():
             try:
@@ -58,7 +62,7 @@ class Bookshelf:
             default=self._json_default,
             indent=2
         )
-        with open(self.DATA_FILE, 'w', encoding='utf-8') as f:
+        with open(self.file_path, 'w', encoding='utf-8') as f:
             f.write(dump)
 
     def add_book(self, book: Book) -> None:
