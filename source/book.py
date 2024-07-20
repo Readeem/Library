@@ -30,6 +30,9 @@ class Book:
         self.status: BookStatus = status or BookStatus.in_stock
         self.id: str = id or os.urandom(4).hex()
 
+    def __repr__(self) -> str:
+        return f'<Book title={self.title} author={self.author} year={self.year} status={self.status} id={self.id}>'
+
     def str_status(self) -> str:
         if self.status is BookStatus.in_stock:
             return 'In stock'

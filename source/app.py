@@ -1,6 +1,6 @@
 import os
 import sys
-from typing import ClassVar, Callable
+from typing import ClassVar, Callable, Iterable
 
 from .book import Book, BookStatus
 from .bookshelf import Bookshelf
@@ -23,7 +23,7 @@ class App(metaclass=SupportsCommandsType):
         for cmd in self.COMMANDS:
             out += f'{" / ".join(cmd.invokable_names)}\n'
             if cmd.description:
-                out += f'| {cmd.description}\n'
+                out += f'| {cmd.description.replace("    ", "")}\n'
             if params := cmd.parameters:
                 out += f'| Parameters: {" ".join(params)}\n'
             out += '====================\n'
@@ -70,19 +70,14 @@ class App(metaclass=SupportsCommandsType):
     def books(self) -> None:
         """Command to show all of the stored books."""
         self.output.info('Here are list of all stored books:\n')
-        out = '====================\n'
-        for book in self.bookshelf.books.values():
-            out += f'| Book "{book.title}"\n'
-            out += f'| Author: {book.author}\n'
-            out += f'| {book.year} year of publishing\n'
-            out += f'| ID: {book.id}\n'
-            out += f'| Status: {book.str_status()}\n'
-            out += '====================\n'
-        self.output.info(out)
+        self.show_books(self.bookshelf.books.values())
 
-    @command()
+    @command(aliases=['s'])
     def status(self, book_id: str, status: str) -> None:
-        """Command for changing the book status. Status parameter must be one of 'stock' and 'out'."""
+        """Command for changing the book status.
+
+        Status parameter must be one of 'stock' and 'out'.
+        """
         if book_id not in self.bookshelf.books:
             self.output.error(f'Book with ID "{book_id}" doesn\'t exist!')
             return
@@ -95,6 +90,61 @@ class App(metaclass=SupportsCommandsType):
         book.status = BookStatus.in_stock if status == 'stock' else BookStatus.handed_over
         self.bookshelf.add_book(book)
         self.output.info(f'Status of the book "{book.title}" (ID:{book_id}) has been set to "{book.str_status()}"')
+
+    @command()
+    def search(self, *query: str) -> None:
+        """Command to search for books.
+
+        In query parameter you can specify the book title to search
+        or use arguments to specify the attribute to search.
+
+        Valid arguments:
+        * --title <Book Title>
+        * --author <Book Author>
+        * --year <Publishing year, integer>
+        """
+        valid_args = {'--title', '--author', '--year'}
+        args = {}
+        last_value = ''
+        last_arg = '--title'
+        for arg in query:
+            if arg not in valid_args:
+                last_value += f'{arg} '
+            else:
+                if last_value:
+                    args[last_arg] = last_value.strip()
+                last_value = ''
+                last_arg = arg
+
+        if last_value:
+            args[last_arg] = last_value.strip()
+
+        found = []
+        for name, value in args.items():
+            for book in self.bookshelf.books.values():
+                if book in found:
+                    continue
+                search = value.lower()
+                if name == '--title':
+                    if search in book.title.lower():
+                        found.append(book)
+                elif name == '--author':
+                    if search in book.author.lower():
+                        found.append(book)
+                elif name == '--year':
+                    try:
+                        year = int(value)
+                    except (TypeError, ValueError):
+                        self.output.error('Year argument must be an integer.')
+                        return
+                    if year == book.year:
+                        found.append(book)
+        if not found:
+            self.output.warning('No books found.')
+            return
+
+        self.output.info('Here are list of books matched your query:\n')
+        self.show_books(found)
 
     @command(aliases=['del', 'd'])
     def delete(self, book_id: str) -> None:
@@ -132,6 +182,17 @@ class App(metaclass=SupportsCommandsType):
                 continue
             break
         return result
+
+    def show_books(self, books: Iterable[Book]) -> None:
+        out = '====================\n'
+        for book in books:
+            out += f'| Book "{book.title}"\n'
+            out += f'| Author: {book.author}\n'
+            out += f'| {book.year} year of publishing\n'
+            out += f'| ID: {book.id}\n'
+            out += f'| Status: {book.str_status()}\n'
+            out += '====================\n'
+        self.output.info(out)
 
     def invoke_command(self, name: str, params: list[str]) -> None:
         self.clear_screen()
